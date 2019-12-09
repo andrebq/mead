@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/nats-io/nats.go"
+	uuid "github.com/satori/go.uuid"
 	"gopkg.in/tomb.v2"
 )
 
@@ -49,6 +50,18 @@ func (p *PO) Close() error {
 // the given name will receive copies of the message.
 func (p *PO) AcquireMailbox(name, group string, handler MailHandler) (*Mailbox, error) {
 	// TODO: add some metric gathering
+	// TODO: might add some logic in the future
+	return p.createAndSubscribe(name, group, handler)
+}
+
+// AcquirePrivateMailbox opens a new subscription for a random name.
+//
+// This Mailbox is unique therefore there is no negotiation regarding locks or anything
+func (p *PO) AcquirePrivateMailbox(group string, handler MailHandler) (*Mailbox, error) {
+	return p.createAndSubscribe(uuid.NewV4().String(), group, handler)
+}
+
+func (p *PO) createAndSubscribe(name, group string, handler MailHandler) (*Mailbox, error) {
 	mb := &Mailbox{name: name, group: group, h: handler}
 	var err error
 	if len(group) > 0 {
